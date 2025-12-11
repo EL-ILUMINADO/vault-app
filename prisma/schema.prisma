@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --------------------------------------
+// 1. STAFF & SECURITY (RBAC)
+// --------------------------------------
+
+model AdminUser {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  fullName String
+  password String // Hashed password
+  role     Role    @default(VIEWER) // Controls what they can see
+  isActive Boolean @default(true) // If false, they can't login
+
+  // Security: We track every action this staff member takes
+  auditLogs AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admin_users")
+}
+
+// --------------------------------------
+// 2. CUSTOMERS (The Users)
+// --------------------------------------
+
+model Customer {
+  id          String  @id @default(cuid())
+  email       String  @unique
+  phoneNumber String? @unique
+  firstName   String
+  lastName    String
+
+  // Compliance Status
+  kycStatus KycStatus @default(PENDING)
+  riskLevel RiskLevel @default(LOW)
+  isFrozen  Boolean   @default(false) // "Freeze Account" button toggles this
+
+  // Relationships
+  wallets      Wallet[]
+  transactions Transaction[]
+  kycDocuments KycDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Performance: Index email/phone for fast search
+  @@index([email, phoneNumber])
+  @@map("customers")
+}
+
+// --------------------------------------
+// 3. FINANCIALS (Wallets & Money)
+// --------------------------------------
+
+model Wallet {
+  id       String @id @default(cuid())
+  currency String @default("NGN") // NGN, USD, GBP
+
+  balance BigInt @default(0)
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id        String @id @default(cuid())
+  reference String @unique // External Ref (e.g. from Paystack/Stripe)
+
+  amount BigInt // Stored in Kobo/Cents
+  fee    BigInt @default(0)
+
+  type        TxType // CREDIT (In) or DEBIT (Out)
+  status      TxStatus @default(PENDING)
+  description String?
+
+  // Relationships
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  // Meta data for tracing (IP address of user, Device ID)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Performance: Critical for the "All Transactions" table
+  @@index([status])
+  @@index([customerId])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+// --------------------------------------
+// 4. COMPLIANCE (KYC)
+// --------------------------------------
+
+model KycDocument {
+  id      String  @id @default(cuid())
+  type    DocType // PASSPORT, NIN, DRIVERS_LICENSE
+  fileUrl String // URL to image storage (S3/Cloudinary)
+
+  status          KycStatus @default(PENDING)
+  rejectionReason String?
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("kyc_documents")
+}
+
+// --------------------------------------
+// 5. AUDIT TRAILS (The "Black Box")
+// --------------------------------------
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  action     String // e.g., "APPROVE_KYC", "FREEZE_WALLET"
+  resource   String // e.g., "Customer", "Transaction"
+  resourceId String // The ID of the thing that was changed
+
+  details Json? // Store "Before" and "After" values here
+
+  adminId String
+  admin   AdminUser @relation(fields: [adminId], references: [id])
+
+  ipAddress String? // Track staff IP for security
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+// --------------------------------------
+// ENUMS (Fixed Options)
+// --------------------------------------
+
+enum Role {
+  SUPER_ADMIN // Can delete other admins
+  ADMIN // Can approve KYC, Freeze accounts
+  SUPPORT // Can only View data
+  COMPLIANCE // Can only manage KYC
+  VIEWER // Can only View data
+}
+
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TxType {
+  CREDIT
+  DEBIT
+}
+
+enum TxStatus {
+  SUCCESS
+  FAILED
+  PENDING
+  REVERSED
+}
+
+enum DocType {
+  PASSPORT
+  NIN
+  DRIVERS_LICENSE
+  UTILITY_BILL
+}

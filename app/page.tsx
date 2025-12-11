@@ -1,65 +1,180 @@
-import Image from "next/image";
+import { PrismaClient } from "@prisma/client";
 
-export default function Home() {
+import { Activity, CreditCard, Users, AlertTriangle } from "lucide-react";
+import { format } from "date-fns";
+import { MetricCard } from "./components/dashboard/metric-card";
+import { TransactionChart } from "./components/dashboard/transaction-chart";
+
+const prisma = new PrismaClient();
+
+//  see live data on every refresh
+export const dynamic = "force-dynamic";
+
+export default async function Dashboard() {
+  // 1. Fetch all required data in parallel (Fastest way)
+  const [totalVolume, txCount, pendingKyc, failedTx, recentTx, chartDataRaw] =
+    await Promise.all([
+      // A. Sum of all successful transactions
+      prisma.transaction.aggregate({
+        _sum: { amount: true },
+        where: { status: "SUCCESS" },
+      }),
+
+      // B. Total count of transactions
+      prisma.transaction.count(),
+
+      // C. Pending KYC customers
+      prisma.customer.count({ where: { kycStatus: "PENDING" } }),
+
+      // D. Failed transactions
+      prisma.transaction.count({ where: { status: "FAILED" } }),
+
+      // E. Recent 5 transactions for the list
+      prisma.transaction.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        include: { customer: true },
+      }),
+
+      // F. Data for chart (Last 30 days)
+      prisma.transaction.findMany({
+        where: {
+          createdAt: {
+            gte: new Date(new Date().setDate(new Date().getDate() - 30)),
+          },
+        },
+        select: { createdAt: true, amount: true },
+      }),
+    ]);
+
+  // 2. Process Data for the Chart (Group by Date)
+  // We do this in JS because it's easier than complex SQL grouping for this scale
+  const chartMap = new Map<string, number>();
+
+  chartDataRaw.forEach((tx) => {
+    const date = format(tx.createdAt, "MMM dd");
+    const current = chartMap.get(date) || 0;
+    // Add amount (Convert BigInt to Number for the chart)
+    chartMap.set(date, current + Number(tx.amount));
+  });
+
+  // Convert Map to Array for Recharts
+  const chartData = Array.from(chartMap)
+    .map(([date, amount]) => ({
+      date,
+      amount,
+    }))
+    .reverse(); // Reverse if needed based on your sorting
+
+  // Helper: Format Kobo to Naira
+  const formatMoney = (amount: bigint) => {
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+    }).format(Number(amount) / 100);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-white">
+          Dashboard Overview
+        </h2>
+        <p className="text-slate-400">
+          Real-time update of financial operations.
+        </p>
+      </div>
+
+      {/* 1. METRICS GRID */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          label="Total Volume"
+          value={formatMoney(totalVolume._sum.amount || BigInt(0))}
+          icon={Activity}
+          trend="+12.5% from last month"
+          trendColor="green"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <MetricCard
+          label="Total Transactions"
+          value={txCount.toLocaleString()}
+          icon={CreditCard}
+        />
+        <MetricCard
+          label="Pending KYC"
+          value={pendingKyc.toString()}
+          icon={Users}
+          trend="Requires attention"
+          trendColor="warning"
+        />
+        <MetricCard
+          label="Failed Transactions"
+          value={failedTx.toString()}
+          icon={AlertTriangle}
+          trend={`${((failedTx / (txCount || 1)) * 100).toFixed(
+            1
+          )}% failure rate`}
+          trendColor="red"
+        />
+      </div>
+
+      {/* 2. CHART SECTION */}
+      <div className="grid gap-4 md:grid-cols-7">
+        <div className="col-span-4">
+          <TransactionChart data={chartData} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* 3. RECENT ACTIVITY (Simple Table) */}
+        <div className="col-span-3 rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+          <h3 className="mb-4 text-lg font-semibold text-white">
+            Recent Transactions
+          </h3>
+          <div className="space-y-4">
+            {recentTx.map((tx) => (
+              <div
+                key={tx.id}
+                className="flex items-center justify-between border-b border-slate-800 pb-4 last:border-0 last:pb-0"
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      tx.status === "SUCCESS"
+                        ? "bg-emerald-500/10 text-emerald-500"
+                        : tx.status === "FAILED"
+                        ? "bg-red-500/10 text-red-500"
+                        : "bg-amber-500/10 text-amber-500"
+                    }`}
+                  >
+                    {tx.status === "SUCCESS"
+                      ? "✓"
+                      : tx.status === "FAILED"
+                      ? "✕"
+                      : "•"}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {tx.customer.firstName} {tx.customer.lastName}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {format(tx.createdAt, "MMM dd, HH:mm")}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p
+                    className={`text-sm font-medium ${
+                      tx.type === "CREDIT" ? "text-emerald-400" : "text-white"
+                    }`}
+                  >
+                    {tx.type === "CREDIT" ? "+" : "-"}
+                    {formatMoney(tx.amount)}
+                  </p>
+                  <p className="text-xs text-slate-500">{tx.type}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
