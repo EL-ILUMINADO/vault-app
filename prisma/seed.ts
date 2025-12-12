@@ -19,7 +19,6 @@ async function main() {
     create: {
       email: "admin@vault.app",
       fullName: "Super Admin",
-      password: "hashed-password-123",
       role: Role.SUPER_ADMIN,
     },
   });
