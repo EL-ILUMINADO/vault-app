@@ -25,7 +25,6 @@ export async function createAdmin(
       data: {
         email,
         fullName,
-        password: "password123",
         role,
         isActive: true,
       },

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma-db";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { KycWorkspace } from "../components/kyc/kyc-workspace";
+import { KycWorkspace } from "../../components/kyc/kyc-workspace";
 
 export default async function KycPage(props: {
   searchParams: Promise<{ id?: string }>;
@@ -19,7 +19,7 @@ export default async function KycPage(props: {
     : null;
 
   return (
-    <div className="flex h-[calc(100vh-140px)] lg:h-[calc(100vh-120px)] overflow-hidden rounded-xl border border-slate-800 bg-slate-950 relative">
+    <div className="flex h-[calc(100vh-140px)] lg:h-[calc(100vh-120px)] overflow-hidden rounded-xl border border-slate-800 bg-slate-950 relative px-4 py-6">
       {/* LEFT PANE: The Queue */}
 
       <div

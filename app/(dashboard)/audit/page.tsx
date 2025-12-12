@@ -22,7 +22,7 @@ export default async function AuditLogsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 py-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-white">
           System Audit Logs

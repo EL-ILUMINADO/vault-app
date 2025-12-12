@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma-db";
 import { Wallet, Globe, TrendingUp } from "lucide-react";
-import { MetricCard } from "../components/dashboard/metric-card";
-import { DataTable } from "../components/transactions/data-table";
-import { columns } from "../components/wallets/columns";
+import { MetricCard } from "../../components/dashboard/metric-card";
+import { DataTable } from "../../components/transactions/data-table";
+import { columns } from "../../components/wallets/columns";
 
 export const revalidate = 60;
 
@@ -53,7 +53,7 @@ export default async function WalletsPage() {
   }));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-4 py-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-white">
           Treasury & Wallets

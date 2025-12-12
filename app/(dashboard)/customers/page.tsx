@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma-db";
-import { CustomerTable } from "../components/customers/customer-table";
-import { columns } from "../components/customers/columns";
-import { Search } from "../components/ui/search";
-import { TableLoader } from "../components/transactions/table-loader";
+import { CustomerTable } from "../../components/customers/customer-table";
+import { columns } from "../../components/customers/columns";
+import { Search } from "../../components/ui/search";
+import { TableLoader } from "../../components/transactions/table-loader";
 
 async function CustomerList({ query }: { query: string }) {
   // Fetch customers with search filter
@@ -46,7 +46,7 @@ export default async function CustomersPage(props: {
   const query = searchParams.query || "";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 py-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white">
