@@ -1,3 +1,4 @@
+// Force build sync 1.0
 "use server";
 
 import { prisma } from "@/lib/prisma-db";
@@ -25,7 +26,6 @@ export async function createAdmin(
       data: {
         email,
         fullName,
-        password: "password123",
         role,
         isActive: true,
       },

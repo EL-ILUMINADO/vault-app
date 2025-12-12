@@ -2,8 +2,8 @@ import { PrismaClient } from "@prisma/client";
 
 import { Activity, CreditCard, Users, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
-import { MetricCard } from "./components/dashboard/metric-card";
-import { TransactionChart } from "./components/dashboard/transaction-chart";
+import { MetricCard } from "../components/dashboard/metric-card";
+import { TransactionChart } from "../components/dashboard/transaction-chart";
 
 const prisma = new PrismaClient();
 
@@ -47,26 +47,21 @@ export default async function Dashboard() {
       }),
     ]);
 
-  // 2. Process Data for the Chart (Group by Date)
-  // We do this in JS because it's easier than complex SQL grouping for this scale
   const chartMap = new Map<string, number>();
 
   chartDataRaw.forEach((tx) => {
     const date = format(tx.createdAt, "MMM dd");
     const current = chartMap.get(date) || 0;
-    // Add amount (Convert BigInt to Number for the chart)
     chartMap.set(date, current + Number(tx.amount));
   });
 
-  // Convert Map to Array for Recharts
   const chartData = Array.from(chartMap)
     .map(([date, amount]) => ({
       date,
       amount,
     }))
-    .reverse(); // Reverse if needed based on your sorting
+    .reverse();
 
-  // Helper: Format Kobo to Naira
   const formatMoney = (amount: bigint) => {
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
@@ -75,7 +70,7 @@ export default async function Dashboard() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-4 py-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-white">
           Dashboard Overview
@@ -85,7 +80,6 @@ export default async function Dashboard() {
         </p>
       </div>
 
-      {/* 1. METRICS GRID */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           label="Total Volume"

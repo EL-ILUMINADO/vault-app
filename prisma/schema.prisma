@@ -12,14 +12,15 @@ datasource db {
 // --------------------------------------
 
 model AdminUser {
-  id       String  @id @default(cuid())
-  email    String  @unique
+  id       String @id @default(cuid())
+  email    String @unique
   fullName String
-  password String // Hashed password
-  role     Role    @default(VIEWER) // Controls what they can see
-  isActive Boolean @default(true) // If false, they can't login
 
-  // Security: We track every action this staff member takes
+  clerkId String? @unique
+
+  role     Role    @default(ADMIN)
+  isActive Boolean @default(true)
+
   auditLogs AuditLog[]
 
   createdAt DateTime @default(now())

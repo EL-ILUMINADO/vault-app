@@ -4,9 +4,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { menuList } from "@/lib/menu-list";
+import { SignOutButton } from "@clerk/nextjs";
+import { LogOut } from "lucide-react";
+import { useState } from "react";
+import { AdminUserPayload } from "@/types/admin";
 
-export function Sidebar() {
+type SidebarProps = {
+  user: AdminUserPayload | null;
+};
+
+export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
+
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  if (!user) return null;
 
   return (
     <aside className="hidden lg:flex h-screen w-64 flex-col border-r border-slate-800 bg-slate-950 text-white fixed left-0 top-0">
@@ -51,15 +63,27 @@ export function Sidebar() {
       </div>
 
       <div className="border-t border-slate-800 p-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-4">
           <div className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400">
-            SA
+            {/* Dynamic Initials */}
+            {user.fullName[0]}
           </div>
-          <div className="text-sm">
-            <p className="font-medium text-white">Super Admin</p>
-            <p className="text-xs text-slate-500">admin@vault.app</p>
+          <div className="text-sm overflow-hidden">
+            <p className="font-medium text-white truncate">{user.fullName}</p>
+            <p className="text-xs text-slate-500 truncate">{user.email}</p>
           </div>
         </div>
+
+        {/* LOGOUT BUTTON */}
+        <SignOutButton>
+          <button
+            onClick={() => setIsSigningOut(true)}
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-red-500 transition-colors"
+          >
+            <LogOut className="h-4 w-4 animate-spin" />
+            {isSigningOut ? "Signing out..." : "Sign Out"}
+          </button>
+        </SignOutButton>
       </div>
     </aside>
   );

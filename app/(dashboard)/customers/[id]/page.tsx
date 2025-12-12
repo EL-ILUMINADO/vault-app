@@ -71,7 +71,7 @@ export default async function CustomerProfilePage(props: {
   }));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-4 py-6">
       <ProfileHeader customer={customer} />
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">

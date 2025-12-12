@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 
 import { prisma } from "@/lib/prisma-db";
-import { DataTable } from "../components/transactions/data-table";
-import { columns } from "../components/transactions/columns";
-import { TransactionPanel } from "../components/transactions/transaction-panel";
-import { Search } from "../components/ui/search";
-import { TableLoader } from "../components/transactions/table-loader";
+import { DataTable } from "../../components/transactions/data-table";
+import { columns } from "../../components/transactions/columns";
+import { TransactionPanel } from "../../components/transactions/transaction-panel";
+import { Search } from "../../components/ui/search";
+import { TableLoader } from "../../components/transactions/table-loader";
 
 // 1. The List Component: Fetches data based on props
 async function TransactionList({
@@ -90,7 +90,7 @@ export default async function TransactionsPage(props: {
   const suspenseKey = query + currentPage;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 py-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white">

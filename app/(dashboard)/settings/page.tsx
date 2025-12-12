@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma-db";
 import { Lock } from "lucide-react";
 import { format } from "date-fns";
-import { InviteForm } from "../components/settings/invite-form";
+import { InviteForm } from "../../components/settings/invite-form";
 
 export default async function SettingsPage() {
   const admins = await prisma.adminUser.findMany({
@@ -9,7 +9,7 @@ export default async function SettingsPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-4 py-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-white">
           System Settings
